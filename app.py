@@ -5,9 +5,9 @@ import json, io, os, re
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
-from reportlab.lib.colors import HexColor, black, white
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable, Table, TableStyle
-from reportlab.lib.enums import TA_LEFT, TA_CENTER
+from reportlab.lib.colors import HexColor
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
+from reportlab.lib.enums import TA_LEFT
 from docx import Document
 from docx.shared import Pt, RGBColor, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -19,14 +19,14 @@ from pptx.dml.color import RGBColor as PptRGB
 from pptx.enum.text import PP_ALIGN
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins='*', methods=['GET', 'POST', 'OPTIONS'], allow_headers=['Content-Type'])
 
 GEMINI_KEY = os.environ.get('GEMINI_API_KEY', '')
 genai.configure(api_key=GEMINI_KEY)
 
 SYSTEM_PROMPT = """Você é Maia, agente especialista em criação de materiais profissionais da Mentoria Âncora, criada e treinada por Jhenifer.
 
-Sua função é criar materiais prontos para download: PDF, Word, Excel e PowerPoint. Você transforma pedidos em arquivos reais, organizados, profissionais e prontos para usar.
+Sua função é criar materiais prontos para download: PDF, Word, Excel e PowerPoint.
 
 QUEM VOCÊ ATENDE
 Empresárias de todos os segmentos: comércio local, loja física, infoproduto, serviço, mentoria, produto físico.
@@ -59,9 +59,9 @@ def criar_pdf(conteudo, nome):
         rightMargin=2*cm, leftMargin=2*cm,
         topMargin=2.5*cm, bottomMargin=2.5*cm)
 
+    preto = HexColor('#0d0d0d')
     cinza_escuro = HexColor('#1a1a1a')
     cinza_medio = HexColor('#444444')
-    preto = HexColor('#0d0d0d')
 
     titulo_style = ParagraphStyle('titulo', fontName='Helvetica-Bold',
         fontSize=22, textColor=preto, spaceAfter=8, leading=28)
@@ -72,7 +72,7 @@ def criar_pdf(conteudo, nome):
 
     elementos = []
     elementos.append(Paragraph(conteudo.get('titulo', nome), titulo_style))
-    elementos.append(HRFlowable(width='100%', thickness=1.5, color=HexColor('#0d0d0d'), spaceAfter=16))
+    elementos.append(HRFlowable(width='100%', thickness=1.5, color=preto, spaceAfter=16))
 
     for secao in conteudo.get('secoes', []):
         elementos.append(Paragraph(secao.get('titulo', ''), secao_style))
@@ -150,10 +150,9 @@ def criar_pptx(conteudo, nome):
     prs = Presentation()
     prs.slide_width = Emu(9144000)
     prs.slide_height = Emu(5143500)
-    slides = conteudo.get('slides', [])
     titulo_apres = conteudo.get('titulo_apresentacao', nome)
 
-    for i, slide_data in enumerate(slides):
+    for i, slide_data in enumerate(conteudo.get('slides', [])):
         slide = prs.slides.add_slide(prs.slide_layouts[6])
         fill = slide.background.fill
         fill.solid()
@@ -188,8 +187,10 @@ def criar_pptx(conteudo, nome):
     buffer.seek(0)
     return buffer
 
-@app.route('/chat', methods=['POST'])
+@app.route('/chat', methods=['POST', 'OPTIONS'])
 def chat():
+    if request.method == 'OPTIONS':
+        return '', 200
     data = request.json
     messages = data.get('messages', [])
     history = [{'role': m['role'], 'parts': [m['content']]} for m in messages[:-1]]
@@ -209,8 +210,10 @@ def chat():
 
     return jsonify({'type': 'text', 'message': reply})
 
-@app.route('/gerar', methods=['POST'])
+@app.route('/gerar', methods=['POST', 'OPTIONS'])
 def gerar():
+    if request.method == 'OPTIONS':
+        return '', 200
     data = request.json
     tipo = data.get('tipo')
     nome = data.get('nome', 'arquivo')
