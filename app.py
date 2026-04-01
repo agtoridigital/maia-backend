@@ -21,7 +21,7 @@ from pptx.enum.text import PP_ALIGN
 app = Flask(__name__)
 CORS(app, origins='*', methods=['GET', 'POST', 'OPTIONS'], allow_headers=['Content-Type'])
 
-GEMINI_KEY = os.environ.get('GEMINI_API_KEY', '')
+GEMINI_KEY = os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY', '')
 genai.configure(api_key=GEMINI_KEY)
 
 SYSTEM_PROMPT = """Você é Maia, agente especialista em criação de materiais profissionais da Mentoria Âncora, criada e treinada por Jhenifer.
