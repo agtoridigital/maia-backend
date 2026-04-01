@@ -21,7 +21,6 @@ app = Flask(__name__)
 CORS(app, origins='*', methods=['GET', 'POST', 'OPTIONS'], allow_headers=['Content-Type'])
 
 GEMINI_KEY = os.environ.get('GOOGLE_API_KEY') or os.environ.get('GEMINI_API_KEY', '')
-client = genai.Client(api_key=GEMINI_KEY)
 
 SYSTEM_PROMPT = """Você é Maia, agente especialista em criação de materiais profissionais da Mentoria Âncora, criada e treinada por Jhenifer.
 
@@ -49,6 +48,9 @@ Para PowerPoint:
 
 REGRAS ABSOLUTAS
 Nunca use travessão. Nunca entregue conteúdo genérico. Nunca use linguagem formal ou distante. Sempre crie materiais completos. Quando for saudação ou pergunta simples, responda em texto puro sem JSON."""
+
+def get_client():
+    return genai.Client(api_key=GEMINI_KEY)
 
 def criar_pdf(conteudo, nome):
     buffer = io.BytesIO()
@@ -177,7 +179,7 @@ def chat():
         role = 'model' if m['role'] == 'assistant' else m['role']
         history.append({'role': role, 'parts': [{'text': m['content']}]})
     last = messages[-1]['content'] if messages else ''
-    response = client.models.generate_content(
+    response = get_client().models.generate_content(
         model='gemini-2.5-flash',
         contents=history + [{'role': 'user', 'parts': [{'text': last}]}],
         config={'system_instruction': SYSTEM_PROMPT, 'temperature': 0.7, 'max_output_tokens': 4000}
